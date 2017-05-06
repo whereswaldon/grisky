@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	gv "github.com/awalterschulze/gographviz"
-	"github.com/whereswaldon/dijkstra/alg"
+	"github.com/whereswaldon/slijkstra/alg"
 	"math/rand"
 	"os"
 	"strconv"
