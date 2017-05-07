@@ -10,11 +10,16 @@ import (
 	"time"
 )
 
-var colors = [...]string{"red", "orange", "yellow", "green", "pink", "gold", "chocolate"}
+var (
+	colors = [...]string{"red", "orange", "yellow", "green", "pink", "gold", "chocolate"}
+)
 
 const (
-	TOTAL_NODES = 42
-	MAX_EDGES   = TOTAL_NODES * 2
+	TOTAL_NODES                   = 42
+	MAX_EDGES                     = TOTAL_NODES * 2
+	MAX_CONTINENTS                = 10
+	MIN_CONTINENTS                = 5
+	MIN_TERRITORIES_PER_CONTINENT = 3
 )
 
 func getColor() string {
@@ -23,6 +28,20 @@ func getColor() string {
 
 func main() {
 	rand.Seed(time.Now().Unix())
+	// Create an array to track the distribution of territories between continents
+	numContinents := rand.Int31n(MAX_CONTINENTS-MIN_CONTINENTS) + MIN_CONTINENTS
+	continentCounts := make([]int, numContinents)
+	continentsNeedingAllocation := TOTAL_NODES - numContinents*MIN_TERRITORIES_PER_CONTINENT
+	// randomly allocate territories
+	for continentsNeedingAllocation > 0 {
+		continentCounts[rand.Int31n(numContinents)]++
+		continentsNeedingAllocation--
+	}
+	// ensure each continent has the minimum quantity of territories
+	for i := range continentCounts {
+		continentCounts[i] += MIN_TERRITORIES_PER_CONTINENT
+	}
+	fmt.Fprintln(os.Stderr, continentCounts)
 	graph := gv.NewGraph()
 	solver := alg.NewGraph(TOTAL_NODES)
 	for i := 0; i < TOTAL_NODES; i++ {
