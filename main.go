@@ -34,15 +34,15 @@ type Board struct {
 }
 
 func (b *Board) allocateContinents() {
+	// ensure each continent has the minimum quantity of territories
+	for i := range b.continentCounts {
+		b.continentCounts[i] += MIN_TERRITORIES_PER_CONTINENT
+	}
 	continentsNeedingAllocation := TOTAL_NODES - b.numContinents*MIN_TERRITORIES_PER_CONTINENT
 	// randomly allocate territories
 	for continentsNeedingAllocation > 0 {
 		b.continentCounts[rand.Int31n(int32(b.numContinents))]++
 		continentsNeedingAllocation--
-	}
-	// ensure each continent has the minimum quantity of territories
-	for i := range b.continentCounts {
-		b.continentCounts[i] += MIN_TERRITORIES_PER_CONTINENT
 	}
 	fmt.Fprintln(os.Stderr, b.continentCounts)
 }
