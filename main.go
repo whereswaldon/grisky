@@ -69,17 +69,23 @@ func (b *Board) createGraph() {
 
 func (b *Board) assignEdges() {
 	var other, current int
-	for i := 0; i < MAX_EDGES; i++ {
-		other = int(rand.Int31n(TOTAL_NODES))
-		current = i % TOTAL_NODES
-		for other == current {
-			other = int(rand.Int31n(TOTAL_NODES))
+	currentContinentOffset := 0
+	for i := 0; i < b.numContinents; i++ {
+		for k := 0; k < b.continentCounts[i]; k++ {
+			current = k + currentContinentOffset
+			other = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
+			for current == other {
+				other = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
+			}
+			fmt.Fprintf(os.Stderr, "i: %d k: %d current: %d other: %d\n", i, k, current, other)
+			b.vizgraph.AddEdge(strconv.Itoa(current),
+				strconv.Itoa(other), false, nil)
+			b.solvgraph.InsertEdge(current, other, 1)
 		}
-		b.vizgraph.AddEdge(strconv.Itoa(current),
-			strconv.Itoa(other), false, nil)
-		b.solvgraph.InsertEdge(current, other, 1)
+		currentContinentOffset += b.continentCounts[i]
 	}
 }
+
 func MakeBoard(size int) *Board {
 	// Create an array to track the distribution of territories between continents
 	numContinents := rand.Int31n(MAX_CONTINENTS-MIN_CONTINENTS) + MIN_CONTINENTS
