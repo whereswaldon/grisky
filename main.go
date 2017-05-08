@@ -71,16 +71,31 @@ func (b *Board) assignEdges() {
 	var other, current int
 	currentContinentOffset := 0
 	for i := 0; i < b.numContinents; i++ {
-		for k := 0; k < b.continentCounts[i]; k++ {
-			current = k + currentContinentOffset
+		numExtraEdges := chooseNumberExtraEdges(b.continentCounts[i])
+		for k := 0; k < numExtraEdges; k++ {
+			current = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
 			other = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
 			for current == other {
 				other = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
 			}
 			fmt.Fprintf(os.Stderr, "i: %d k: %d current: %d other: %d\n", i, k, current, other)
-			b.vizgraph.AddEdge(strconv.Itoa(current),
-				strconv.Itoa(other), false, nil)
-			b.solvgraph.InsertEdge(current, other, 1)
+			b.AddEdge(current, other)
+		}
+		currentContinentOffset += b.continentCounts[i]
+	}
+}
+
+// makeEdgeCycles ensures that a continent starts with all territories
+// connected in a cycle
+func (b *Board) makeEdgeCycles() {
+	var other, current int
+	currentContinentOffset := 0
+	for i := 0; i < b.numContinents; i++ {
+		//start with a cycle
+		for k := 0; k < b.continentCounts[i]; k++ {
+			current = k + currentContinentOffset
+			other = ((k + 1) % b.continentCounts[i]) + currentContinentOffset
+			b.AddEdge(current, other)
 		}
 		currentContinentOffset += b.continentCounts[i]
 	}
@@ -96,8 +111,20 @@ func MakeBoard(size int) *Board {
 	}
 	board.allocateContinents()
 	board.createGraph()
+	board.makeEdgeCycles()
 	board.assignEdges()
 	return board
+}
+
+// chooseNumberExtraEdges selects a random number of additional edges to add to a
+// continent between 0 and (n^2-3n)/2, which is the maximum number of unique
+// edges in the continent
+func chooseNumberExtraEdges(numTerritories int) int {
+	return int(rand.Int31n(int32(((numTerritories * numTerritories) - 3*numTerritories) / 2)))
+}
+func (b *Board) AddEdge(u, v int) {
+	b.vizgraph.AddEdge(strconv.Itoa(u), strconv.Itoa(v), false, nil)
+	b.solvgraph.InsertEdge(u, v, 1)
 }
 
 func (b *Board) String() string {
