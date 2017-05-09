@@ -16,7 +16,6 @@ var (
 
 const (
 	TOTAL_NODES                   = 42
-	MAX_EDGES                     = TOTAL_NODES * 2
 	MAX_CONTINENTS                = 10
 	MIN_CONTINENTS                = 5
 	MIN_TERRITORIES_PER_CONTINENT = 3
@@ -68,15 +67,20 @@ func (b *Board) createGraph() {
 }
 
 func (b *Board) assignEdges() {
+	const RETRIES = 5
 	var other, current int
 	currentContinentOffset := 0
 	for i := 0; i < b.numContinents; i++ {
 		numExtraEdges := chooseNumberExtraEdges(b.continentCounts[i])
+	PerContinentLoop:
 		for k := 0; k < numExtraEdges; k++ {
 			current = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
 			other = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
-			for current == other {
+			for m := 0; m < RETRIES && (current == other || b.solvgraph.HasEdge(current, other)); m++ {
 				other = int(rand.Int31n(int32(b.continentCounts[i]))) + currentContinentOffset
+				if m == RETRIES-1 {
+					continue PerContinentLoop
+				}
 			}
 			fmt.Fprintf(os.Stderr, "i: %d k: %d current: %d other: %d\n", i, k, current, other)
 			b.AddEdge(current, other)
@@ -117,10 +121,16 @@ func MakeBoard(size int) *Board {
 }
 
 // chooseNumberExtraEdges selects a random number of additional edges to add to a
-// continent between 0 and (n^2-3n)/2, which is the maximum number of unique
+// continent between 2 and (n^2-3n)/2, which is the maximum number of unique
 // edges in the continent
 func chooseNumberExtraEdges(numTerritories int) int {
-	return int(rand.Int31n(int32(((numTerritories * numTerritories) - 3*numTerritories) / 2)))
+	switch numTerritories {
+	case 3:
+		return 0
+	case 4:
+		return 1
+	}
+	return int(rand.Int31n(int32(((numTerritories*numTerritories)-3*numTerritories)/2)-2)) + 2
 }
 func (b *Board) AddEdge(u, v int) {
 	b.vizgraph.AddEdge(strconv.Itoa(u), strconv.Itoa(v), false, nil)
