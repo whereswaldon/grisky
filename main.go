@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	colors = [...]string{"red", "orange", "yellow", "green", "pink", "gold", "chocolate", "blue", "white", "gray"}
+	colors = [...]string{"red", "orange", "yellow", "green", "pink", "gold", "chocolate", "cyan", "white", "gray"}
 )
 
 const (
@@ -25,9 +25,18 @@ func getColor() string {
 	return colors[rand.Int31n(int32(len(colors)))]
 }
 
+type diameterEntry struct {
+	startNode, endNode, diameter int
+}
+
+func (d diameterEntry) String() string {
+	return fmt.Sprintf("start: %d end: %d diameter: %d", d.startNode, d.endNode, d.diameter)
+}
+
 type Board struct {
 	numContinents   int
 	continentCounts []int
+	diameters       []*diameterEntry
 	vizgraph        *gv.Graph
 	solvgraph       *alg.Graph
 }
@@ -82,7 +91,6 @@ func (b *Board) assignEdges() {
 					continue PerContinentLoop
 				}
 			}
-			fmt.Fprintf(os.Stderr, "i: %d k: %d current: %d other: %d\n", i, k, current, other)
 			b.AddEdge(current, other)
 		}
 		currentContinentOffset += b.continentCounts[i]
@@ -105,18 +113,35 @@ func (b *Board) makeEdgeCycles() {
 	}
 }
 
+func (b *Board) calculateDiameters() {
+	currentContinentOffset := 0
+	for i, numTerritories := range b.continentCounts {
+		s, e, d := b.solvgraph.SubgraphSlice(currentContinentOffset,
+			currentContinentOffset+numTerritories-1).
+			FindDiameter(0)
+		b.diameters[i] = &diameterEntry{startNode: s + currentContinentOffset, endNode: e + currentContinentOffset, diameter: d}
+		currentContinentOffset += numTerritories
+	}
+	for _, data := range b.diameters {
+		fmt.Fprintln(os.Stderr, data)
+	}
+}
+
 func MakeBoard(size int) *Board {
 	// Create an array to track the distribution of territories between continents
 	numContinents := rand.Int31n(MAX_CONTINENTS-MIN_CONTINENTS) + MIN_CONTINENTS
 	continentCounts := make([]int, numContinents)
+	diameters := make([]*diameterEntry, numContinents)
 	board := &Board{
 		numContinents:   int(numContinents),
 		continentCounts: continentCounts,
+		diameters:       diameters,
 	}
 	board.allocateContinents()
 	board.createGraph()
 	board.makeEdgeCycles()
 	board.assignEdges()
+	board.calculateDiameters()
 	return board
 }
 
